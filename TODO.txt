@@ -1,0 +1,3 @@
+* Add type safety in assignment statement, function calls.
+* Add support for "for" loop.
+* Better stdlib.

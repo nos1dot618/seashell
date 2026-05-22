@@ -1,0 +1,45 @@
+start: statement*
+
+?statement: assignment
+         | if_statement
+         | function_declaration
+         | function_call
+
+?expression: STRING
+     | NUMBER
+     | IDENTIFIER -> variable
+     | access_member
+     | function_call
+
+assignment: IDENTIFIER "=" expression
+
+if_statement: "if" expression block
+
+function_declaration: "function" IDENTIFIER "(" [parameters] ")" block
+parameters: parameter ("," parameter)*
+parameter: IDENTIFIER [":" IDENTIFIER]
+
+function_call: expression "(" arguments? ")"
+arguments: expression ("," expression)*
+
+access_member: expression "." IDENTIFIER
+
+block: "{" statement* "}"
+
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+%import common.ESCAPED_STRING
+STRING: ESCAPED_STRING
+
+NUMBER: /\d+/
+
+// --- comments ---
+LINE_COMMENT: /#[^\n]*/
+MULTILINE_COMMENT: /<#[\s\S]*?#>/
+
+%ignore LINE_COMMENT
+%ignore MULTILINE_COMMENT
+
+// --- whitespace ---
+%import common.WS
+%ignore WS
