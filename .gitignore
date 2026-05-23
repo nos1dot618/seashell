@@ -1,6 +1,5 @@
 .venv/
 .idea/
-dump/
 dist/
 **__pycache__/
 **.egg-info/

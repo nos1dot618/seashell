@@ -3,6 +3,10 @@ start: statement*
 ?statement: assignment
          | if_statement
          | function_declaration
+         | for_statement
+         | break_statement
+         | continue_statement
+         | return_statement
          | function_call
 
 ?expression: STRING
@@ -19,6 +23,12 @@ function_declaration: "function" IDENTIFIER "(" [parameters] ")" block
 parameters: parameter ("," parameter)*
 parameter: IDENTIFIER [":" IDENTIFIER]
 
+for_statement: "for" IDENTIFIER "in" expression block
+break_statement: "break"
+continue_statement: "continue"
+
+return_statement: "return" expression?
+
 function_call: expression "(" arguments? ")"
 arguments: expression ("," expression)*
 
@@ -34,11 +44,11 @@ STRING: ESCAPED_STRING
 NUMBER: /\d+/
 
 // --- comments ---
-LINE_COMMENT: /#[^\n]*/
-MULTILINE_COMMENT: /<#[\s\S]*?#>/
+%import common.CPP_COMMENT
+%import common.C_COMMENT
 
-%ignore LINE_COMMENT
-%ignore MULTILINE_COMMENT
+%ignore CPP_COMMENT
+%ignore C_COMMENT
 
 // --- whitespace ---
 %import common.WS

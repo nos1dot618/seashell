@@ -1,7 +1,0 @@
-function greet(name) {
-    greeting: number = "hello"
-    # TODO: Add support for format strings.
-    io.writeln(greeting, "\"", name, "\" !")
-}
-
-greet("world")

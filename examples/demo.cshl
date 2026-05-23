@@ -1,0 +1,22 @@
+function greet(name: string, i) {
+    // This is dynamically typed, thus type annotations are not necessary.
+    // However, it is strictly typed, if the type annotations are provided.
+    /*
+     * greeting: number = "hello" // This would result in a type error.
+     * Comments follow the c-style.
+     */
+    greeting = "hello"
+
+    // TODO: Add support for format strings.
+    io.writeln(i, ":", greeting, name, "!")
+}
+
+// Native functions can accept variadic arguments.
+// Escape strings are supported.
+io.writeln("Type of \"hello\" is", "hello".type)
+io.writeln()
+
+// This is lazy evaluation.
+for i in collections.range(1, 10) {
+    greet("world", i)
+}

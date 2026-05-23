@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
+from typing import Iterator
 
 from mypy.nodes import Callable
 
 from seashell.parser.ast_nodes import FunctionDeclaration
-from seashell.runtime.errors import UnknownMemberError
+from seashell.runtime.errors import SeashellRuntimeError, UnknownMemberError
 
 
 class RuntimeValue:
@@ -22,7 +23,10 @@ class RuntimeValue:
         return methods[name]
 
     def is_truthy(self) -> bool:
-        return False
+        raise SeashellRuntimeError(f"{self.type_name()} is not truthy")
+
+    def iterate_values(self):
+        raise SeashellRuntimeError(f"{self.type_name()} is not iterable")
 
     def __str__(self) -> str:
         return "<value>"
@@ -95,10 +99,6 @@ class Module(RuntimeValue):
         members.update(self.exports)
         return members
 
-    def is_truthy(self) -> bool:
-        # TODO: raise error.
-        return False
-
     def __str__(self) -> str:
         return f"<module: {self.name}>"
 
@@ -110,10 +110,6 @@ class Module(RuntimeValue):
 class FunctionValue(RuntimeValue):
     def type_name(self) -> str:
         return "function"
-
-    def is_truthy(self) -> bool:
-        # TODO: raise error.
-        return False
 
     def __str__(self) -> str:
         return "<function>"
@@ -143,6 +139,14 @@ class UserFunction(FunctionValue):
 
     def __repr__(self) -> str:
         return f"NativeFunction(name={self.declaration.name!r})"
+
+
+@dataclass
+class Iterable(RuntimeValue):
+    iterator_factory: Callable[[], Iterator[RuntimeValue]]
+
+    def iterate_values(self):
+        return self.iterator_factory()
 
 
 @dataclass(frozen=True)

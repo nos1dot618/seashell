@@ -6,12 +6,16 @@ from lark import Token, Transformer
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
+    BreakStatement,
+    ContinueStatement,
+    ForStatement,
     FunctionCall,
     FunctionDeclaration,
     IfStatement,
     Number,
     Parameter,
     Program,
+    ReturnStatement,
     String,
     Variable,
 )
@@ -51,6 +55,24 @@ class ASTTransformer(Transformer):
         return Parameter(
             name=items[0],
             type_annotation=items[1],
+        )
+
+    def for_statement(self, items):
+        return ForStatement(
+            variable_name=str(items[0]),
+            iterable=items[1],
+            body=items[2],
+        )
+
+    def break_statement(self, _):
+        return BreakStatement()
+
+    def continue_statement(self, _):
+        return ContinueStatement()
+
+    def return_statement(self, items):
+        return ReturnStatement(
+            value=(items[0] if items else None),
         )
 
     def STRING(self, token: Token) -> String:

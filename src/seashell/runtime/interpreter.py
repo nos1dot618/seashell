@@ -1,13 +1,17 @@
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
+    BreakStatement,
+    ContinueStatement,
     Expression,
+    ForStatement,
     FunctionCall,
     FunctionDeclaration,
     IfStatement,
     Node,
     Number,
     Program,
+    ReturnStatement,
     String,
     Variable,
 )
@@ -20,6 +24,7 @@ from seashell.runtime.errors import (
     UnknownStatementError,
     UnknownTypeError,
 )
+from seashell.runtime.signals import BreakSignal, ContinueSignal, ReturnSignal
 from seashell.runtime.types import assert_type_annotation
 from seashell.runtime.values import (
     NULL,
@@ -30,6 +35,7 @@ from seashell.runtime.values import (
     StringValue,
     UserFunction,
 )
+from seashell.stdlib.collections import CollectionsModule
 from seashell.stdlib.fs import FSModule
 from seashell.stdlib.io import IOModule
 
@@ -58,6 +64,14 @@ class Interpreter:
                 return self.execute_if_statement(node)
             case FunctionDeclaration():
                 return self.execute_function_declaration(node)
+            case ForStatement():
+                return self.execute_for_statement(node)
+            case ContinueStatement():
+                return self.execute_continue_statement(node)
+            case BreakStatement():
+                return self.execute_break_statement(node)
+            case ReturnStatement():
+                return self.execute_return_statement(node)
             case _:
                 raise UnknownStatementError(f"unknown statement: {node}")
 
@@ -82,9 +96,35 @@ class Interpreter:
         self.context.register_symbol(node.name, function)
         return NULL
 
+    def execute_for_statement(self, node: ForStatement) -> RuntimeValue:
+        iterable = self.evaluate(node.iterable)
+        checkpoint_context = self.context.copy()
+        for value in iterable.iterate_values():
+            self.context.register_symbol(node.variable_name, value)
+            try:
+                for statement in node.body:
+                    self.execute(statement)
+            except ContinueSignal:
+                continue
+            except BreakSignal:
+                break
+            finally:
+                self.context.recover_checkpoint(checkpoint_context)
+        return NULL
+
+    def execute_continue_statement(self, node: ContinueStatement) -> RuntimeValue:
+        raise ContinueSignal()
+
+    def execute_break_statement(self, node: BreakStatement) -> RuntimeValue:
+        raise BreakSignal()
+
+    def execute_return_statement(self, node: ReturnStatement) -> RuntimeValue:
+        value = self.evaluate(node.value) if node.value else NULL
+        raise ReturnSignal(value)
+
     def execute_user_function(
         self, function: UserFunction, arguments: list[RuntimeValue]
-    ):
+    ) -> RuntimeValue:
         expected_count, actual_count = (
             len(function.declaration.parameters),
             len(arguments),
@@ -102,8 +142,12 @@ class Interpreter:
         try:
             for statement in function.declaration.body:
                 self.execute(statement)
+        except ReturnSignal as signal:
+            return signal.value
         finally:
             self.context.recover_checkpoint(checkpoint_context)
+
+        return NULL
 
     def evaluate(self, node: Expression) -> RuntimeValue:
         match node:
@@ -131,14 +175,13 @@ class Interpreter:
         return object_value.get_member(node.member)
 
     def evaluate_function_call(self, node: FunctionCall) -> RuntimeValue:
-        function = self.evaluate(node.callee)
+        callee = self.evaluate(node.callee)
         arguments = [self.evaluate(argument) for argument in node.arguments]
-        if isinstance(function, UserFunction):
-            self.execute_user_function(function, arguments)
-            return NULL
-        if isinstance(function, NativeFunction):
-            return function.implementation(*arguments)
-        raise InvalidFunctionCallError(function)
+        if isinstance(callee, UserFunction):
+            return self.execute_user_function(callee, arguments)
+        if isinstance(callee, NativeFunction):
+            return callee.implementation(*arguments)
+        raise InvalidFunctionCallError(callee)
 
     def _register_builtins(self) -> None:
         def register_module(module: Module) -> None:
@@ -146,3 +189,6 @@ class Interpreter:
 
         register_module(IOModule())
         register_module(FSModule())
+        register_module(CollectionsModule())
+
+        self.context.register_symbol("null", NULL)

@@ -11,6 +11,6 @@ def main() -> None:
         source: str = file.read()
 
     program: Program = parse(source)
-    interpreter = Interpreter()
 
+    interpreter = Interpreter()
     interpreter.run(program)

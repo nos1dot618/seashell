@@ -54,7 +54,7 @@ class InvalidFunctionCallError(SeashellRuntimeError):
 
 class ArgumentCountError(SeashellRuntimeError):
     def __init__(
-        self, function_name: str, expected_count: int, actual_count: int
+        self, function_name: str, expected_count: int | str, actual_count: int
     ) -> None:
         self.function_name = function_name
         self.expected_count = expected_count

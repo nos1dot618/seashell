@@ -6,7 +6,7 @@
 
 ```bash
 uv sync
-uv run seashell examples/hello.cshl
+uv run seashell examples/demo.cshl
 ```
 
 Run tests using:

@@ -51,6 +51,28 @@ class FunctionDeclaration(Statement):
 
 
 @dataclass
+class ForStatement(Node):
+    variable_name: str
+    iterable: Expression
+    body: list[Node]
+
+
+@dataclass
+class BreakStatement(Node):
+    pass
+
+
+@dataclass
+class ContinueStatement(Node):
+    pass
+
+
+@dataclass
+class ReturnStatement(Node):
+    value: Expression | None
+
+
+@dataclass
 class String(Expression):
     value: str
 

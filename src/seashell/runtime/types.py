@@ -1,6 +1,7 @@
 from seashell.runtime.errors import TypeMismatchError, UnknownTypeError
 from seashell.runtime.values import (
     FunctionValue,
+    Iterable,
     Module,
     NullValue,
     NumberValue,
@@ -13,6 +14,7 @@ TYPE_REGISTRY: dict[str, type[RuntimeValue]] = {
     "number": NumberValue,
     "module": Module,
     "function": FunctionValue,
+    "iterable": Iterable,
     "null": NullValue,
 }
 
