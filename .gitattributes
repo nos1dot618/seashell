@@ -1,0 +1,3 @@
+*.cshl linguist-language=TypeScript
+*.cshell linguist-language=TypeScript
+*.seashell linguist-language=TypeScript
