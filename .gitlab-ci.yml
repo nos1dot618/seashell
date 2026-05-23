@@ -1,0 +1,26 @@
+stages:
+  - test
+
+linux:
+  stage: test
+  image: python:3.12
+
+  before_script:
+    - pip install uv
+    - uv sync
+
+  script:
+    - uv run pytest
+
+windows:
+  stage: test
+
+  tags:
+    - windows
+
+  before_script:
+    - powershell -Command "pip install uv"
+    - powershell -Command "uv sync"
+
+  script:
+    - powershell -Command "uv run pytest"
