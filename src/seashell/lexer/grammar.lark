@@ -11,7 +11,7 @@ start: statement*
      | access_member
      | function_call
 
-assignment: IDENTIFIER "=" expression
+assignment: IDENTIFIER [":" IDENTIFIER] "=" expression
 
 if_statement: "if" expression block
 

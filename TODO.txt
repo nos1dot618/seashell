@@ -1,3 +1,12 @@
-* Add type safety in assignment statement, function calls.
 * Add support for "for" loop.
+    * Framework for break, continue, return signals.
+* Push and pop context.
+* Return values from function.
+* Math:
+    * Add support for floats.
+    * Add support for binary operation.
+* Import and dispatch other files.
+* Variables defined in inner scope should not leak to outer scope.
 * Better stdlib.
+    * Module for OS and platform details.
+    * String module, which can be leveraged for parsing config files.

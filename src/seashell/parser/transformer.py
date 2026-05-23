@@ -27,7 +27,8 @@ class ASTTransformer(Transformer):
     def assignment(self, items: list[Any]) -> Assignment:
         return Assignment(
             name=str(items[0]),
-            value=items[1],
+            value=items[2],
+            type_annotation=items[1],
         )
 
     def if_statement(self, items: list[Any]) -> IfStatement:
@@ -49,7 +50,7 @@ class ASTTransformer(Transformer):
     def parameter(self, items: list[Any]) -> Parameter:
         return Parameter(
             name=items[0],
-            type_annotation=(items[1] if len(items) > 1 else None),
+            type_annotation=items[1],
         )
 
     def STRING(self, token: Token) -> String:

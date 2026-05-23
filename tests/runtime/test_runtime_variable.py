@@ -1,5 +1,6 @@
 from seashell.parser.parser import parse
 from seashell.runtime.interpreter import Interpreter
+from seashell.runtime.values import StringValue
 
 
 def test_assignment():
@@ -12,4 +13,4 @@ def test_assignment():
     interpreter = Interpreter()
     interpreter.run(program)
 
-    assert interpreter.context.variables["name"] == "hello"
+    assert interpreter.context.symbols["name"] == StringValue("hello")

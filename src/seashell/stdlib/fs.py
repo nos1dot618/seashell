@@ -1,18 +1,19 @@
 from pathlib import Path
 
-from seashell.runtime.module import Module
+from seashell.runtime.values import Module, NativeFunction
 
 
-# noinspection PyMethodMayBeStatic
 class FSModule(Module):
     def __init__(self) -> None:
         super().__init__(name="fs")
 
-        self.register("read_file", self.read_file)
-        self.register("write_file", self.write_file)
-
-    def read_file(self, path: str) -> str:
-        return Path(path).read_text()
-
-    def write_file(self, path: str, content: str):
-        Path(path).write_text(content)
+        self.register(
+            "read_file",
+            NativeFunction("read_file", lambda path: Path(path).read_text()),
+        )
+        self.register(
+            "write_file",
+            NativeFunction(
+                "write_file", lambda path, content: Path(path).write_text(content)
+            ),
+        )

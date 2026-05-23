@@ -1,16 +1,13 @@
-from seashell.runtime.module import Module
+from seashell.runtime.values import Module, NativeFunction
 
 
-# noinspection PyMethodMayBeStatic
 class IOModule(Module):
     def __init__(self) -> None:
         super().__init__(name="io")
 
-        self.register("write", self.write)
-        self.register("writeln", self.writeln)
-
-    def write(self, *values):
-        print(*values, end="")
-
-    def writeln(self, *values):
-        print(*values)
+        self.register(
+            "write", NativeFunction("write", lambda *value: print(*value, end=""))
+        )
+        self.register(
+            "writeln", NativeFunction("writeln", lambda *value: print(*value))
+        )

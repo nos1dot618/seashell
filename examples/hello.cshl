@@ -1,5 +1,5 @@
-function greet(name: string) {
-    greeting = "hello"
+function greet(name) {
+    greeting: number = "hello"
     # TODO: Add support for format strings.
     io.writeln(greeting, "\"", name, "\" !")
 }

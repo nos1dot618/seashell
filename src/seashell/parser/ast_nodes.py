@@ -27,6 +27,7 @@ class Program(Node):
 class Assignment(Statement):
     name: str
     value: Expression
+    type_annotation: str | None = None
 
 
 @dataclass
