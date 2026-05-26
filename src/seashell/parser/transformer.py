@@ -6,6 +6,7 @@ from lark import Token, Transformer
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
+    BinaryExpression,
     BreakStatement,
     ContinueStatement,
     ForStatement,
@@ -17,7 +18,9 @@ from seashell.parser.ast_nodes import (
     Program,
     ReturnStatement,
     String,
+    UnaryExpression,
     Variable,
+    Boolean,
 )
 
 
@@ -85,6 +88,11 @@ class ASTTransformer(Transformer):
             value=int(token.value),
         )
 
+    def BOOLEAN(self, token: Token) -> Boolean:
+        return Boolean(
+            value=(token.value == "true"),
+        )
+
     def IDENTIFIER(self, token: Token) -> str:
         return str(token)
 
@@ -105,3 +113,62 @@ class ASTTransformer(Transformer):
 
     def block(self, items: Any) -> list[Any]:
         return list(items)
+
+    # Binary expressions.
+
+    def or_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "or")
+
+    def and_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "and")
+
+    def eq_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "eq")
+
+    def ne_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "ne")
+
+    def gt_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "gt")
+
+    def lt_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "lt")
+
+    def ge_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "ge")
+
+    def le_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "le")
+
+    def add_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "+")
+
+    def sub_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "-")
+
+    def mul_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "*")
+
+    def div_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "/")
+
+    def neg_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "-")
+
+    def not_op(self, items: Any) -> BinaryExpression:
+        return self._construct_binary_expression(items, "not")
+
+    def _construct_binary_expression(
+        self, items: Any, operator: str
+    ) -> BinaryExpression:
+        return BinaryExpression(
+            left=items[0],
+            operator=operator,
+            right=items[1],
+        )
+
+    def _construct_unary_expression(self, items: Any, operator: str) -> UnaryExpression:
+        return UnaryExpression(
+            expr=items[0],
+            operator=operator,
+        )

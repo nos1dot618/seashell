@@ -1,4 +1,3 @@
-* Add boolean types.
 * Add function return type annotation.
 * Push and pop context.
     * Variables defined in inner scope should not leak to outer scope.
@@ -7,7 +6,6 @@
     * Beautify errors when encountered syntax error.
 * Math:
     * Add support for floats.
-    * Add support for binary operation.
 * Better stdlib.
     * Module for OS and platform details.
     * String module, which can be leveraged for parsing config files.

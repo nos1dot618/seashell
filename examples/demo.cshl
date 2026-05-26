@@ -9,6 +9,8 @@ function greet(name: string, i) {
 
     // TODO: Add support for format strings.
     io.writeln(i, ":", greeting, name, "!")
+
+    return i
 }
 
 // Native functions can accept variadic arguments.
@@ -16,7 +18,11 @@ function greet(name: string, i) {
 io.writeln("Type of \"hello\" is", "hello".type)
 io.writeln()
 
+sum = 0
+
 // This is lazy evaluation.
 for i in collections.range(1, 10) {
-    greet("world", i)
+    sum = sum + greet("world", i)
 }
+
+io.writeln("Sum of numbers 1..9 =", sum)

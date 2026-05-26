@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from lark import Lark, Token, Tree
+from lark import Lark
 
-from seashell.parser.ast_nodes import Program
 from seashell.parser.transformer import ASTTransformer
 
 GRAMMAR = Path(__file__).parent.parent / "lexer" / "grammar.lark"

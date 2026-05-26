@@ -80,3 +80,36 @@ class TypeMismatchError(SeashellRuntimeError):
 
     def __repr__(self) -> str:
         return f"TypeMismatchError(expected_type={self.expected_type!r}, actual_type={self.actual_type!r})"
+
+
+class UnsupportedOperandTypesError(SeashellRuntimeError):
+    def __init__(
+        self,
+        operator: str,
+        left_type: str,
+        right_type: str | None,
+    ):
+        self.operator = operator
+        self.left_type = left_type
+        self.right_type = right_type
+
+        if self.right_type is None:
+            super().__init__(f"unsupported operand type for '{operator}': {left_type}")
+        else:
+            super().__init__(
+                f"unsupported operand types for '{operator}': {left_type} and {right_type}"
+            )
+
+    def __repr__(self) -> str:
+        return (
+            f"UnsupportedOperandTypesError(operator={self.operator!r}, "
+            + f"left_type={self.left_type!r}, right_type={self.right_type!r})"
+        )
+
+
+class DivisionByZeroError(SeashellRuntimeError):
+    def __init__(self) -> None:
+        super().__init__("division by zero")
+
+    def __repr__(self) -> str:
+        return "DivisionByZeroError()"

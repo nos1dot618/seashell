@@ -83,6 +83,11 @@ class Number(Expression):
 
 
 @dataclass
+class Boolean(Expression):
+    value: bool
+
+
+@dataclass
 class Variable(Expression):
     name: str
 
@@ -97,3 +102,16 @@ class FunctionCall(Statement, Expression):
 class AccessMember(Expression):
     object: Expression
     member: str
+
+
+@dataclass
+class BinaryExpression:
+    left: Expression
+    operator: str
+    right: Expression
+
+
+@dataclass
+class UnaryExpression:
+    operator: str
+    expr: Expression

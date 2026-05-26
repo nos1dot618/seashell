@@ -1,6 +1,7 @@
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
+    BinaryExpression,
     BreakStatement,
     ContinueStatement,
     Expression,
@@ -13,6 +14,7 @@ from seashell.parser.ast_nodes import (
     Program,
     ReturnStatement,
     String,
+    UnaryExpression,
     Variable,
 )
 from seashell.runtime.context import RuntimeContext
@@ -27,7 +29,9 @@ from seashell.runtime.errors import (
 from seashell.runtime.signals import BreakSignal, ContinueSignal, ReturnSignal
 from seashell.runtime.types import assert_type_annotation
 from seashell.runtime.values import (
+    BINARY_OPERATOR_METHODS,
     NULL,
+    UNARY_OPERATOR_METHODS,
     Module,
     NativeFunction,
     NumberValue,
@@ -109,6 +113,8 @@ class Interpreter:
             except BreakSignal:
                 break
             finally:
+                # This is not correct to clear the context, this resets symbols modified
+                # in the inner scope. Better would be to use a stack-based context.
                 self.context.recover_checkpoint(checkpoint_context)
         return NULL
 
@@ -161,6 +167,10 @@ class Interpreter:
                 return self.evaluate_access_member(node)
             case FunctionCall():
                 return self.evaluate_function_call(node)
+            case BinaryExpression():
+                return self.evaluate_binary_expression(node)
+            case UnaryExpression():
+                return self.evaluate_unary_expression(node)
             case _:
                 raise UnknownTypeError(node)
 
@@ -182,6 +192,23 @@ class Interpreter:
         if isinstance(callee, NativeFunction):
             return callee.implementation(*arguments)
         raise InvalidFunctionCallError(callee)
+
+    def evaluate_binary_expression(self, node: BinaryExpression) -> RuntimeValue:
+        left = self.evaluate(node.left)
+        right = self.evaluate(node.right)
+        method_name = BINARY_OPERATOR_METHODS.get(node.operator)
+        if method_name is None:
+            raise SeashellRuntimeError(f"unknown binary operator '{node.operator}'")
+        method = getattr(left, method_name)
+        return method(right)
+
+    def evaluate_unary_expression(self, node: UnaryExpression) -> RuntimeValue:
+        expr = self.evaluate(node.left)
+        method_name = UNARY_OPERATOR_METHODS.get(node.operator)
+        if method_name is None:
+            raise SeashellRuntimeError(f"unknown unary operator '{node.operator}'")
+        method = getattr(expr, method_name)
+        return method()
 
     def _register_builtins(self) -> None:
         def register_module(module: Module) -> None:
