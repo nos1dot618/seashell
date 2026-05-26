@@ -43,7 +43,8 @@ start: statement*
          | postfix "(" arguments? ")" -> function_call
          | postfix "." IDENTIFIER -> access_member
 
-?atom: STRING
+?atom: NULL
+     | STRING
      | NUMBER
      | IDENTIFIER -> variable
      | BOOLEAN
@@ -68,6 +69,8 @@ return_statement: "return" expression?
 arguments: expression ("," expression)*
 
 block: "{" statement* "}"
+
+NULL: "null"
 
 BOOLEAN: "true"
        | "false"

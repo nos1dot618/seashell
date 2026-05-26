@@ -87,6 +87,10 @@ class Boolean(Expression):
     value: bool
 
 
+class Null(Expression):
+    pass
+
+
 @dataclass
 class Variable(Expression):
     name: str

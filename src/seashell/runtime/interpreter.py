@@ -16,6 +16,7 @@ from seashell.parser.ast_nodes import (
     String,
     UnaryExpression,
     Variable,
+    Null,
 )
 from seashell.runtime.context import RuntimeContext
 from seashell.runtime.errors import (
@@ -82,7 +83,7 @@ class Interpreter:
     def execute_assignment(self, node: Assignment) -> RuntimeValue:
         value = self.evaluate(node.value)
         assert_type_annotation(node.type_annotation, value)
-        self.context.register_symbol(node.name, value)
+        self.context.assign_symbol(node.name, value)
         return NULL
 
     def execute_function_call(self, node: FunctionCall) -> RuntimeValue:
@@ -91,20 +92,25 @@ class Interpreter:
     def execute_if_statement(self, node: IfStatement) -> RuntimeValue:
         condition = self.evaluate(node.condition)
         if condition.is_truthy():
-            for statement in node.body:
-                self.execute(statement)
+            self.context.push_scope()
+            try:
+                for statement in node.body:
+                    self.execute(statement)
+            finally:
+                self.context.pop_scope()
         return NULL
 
     def execute_function_declaration(self, node: FunctionDeclaration) -> RuntimeValue:
         function = UserFunction(declaration=node)
-        self.context.register_symbol(node.name, function)
+        self.context.assign_symbol(node.name, function)
         return NULL
 
     def execute_for_statement(self, node: ForStatement) -> RuntimeValue:
         iterable = self.evaluate(node.iterable)
-        checkpoint_context = self.context.copy()
+        self.context.register_symbol(node.variable_name, NULL)
         for value in iterable.iterate_values():
-            self.context.register_symbol(node.variable_name, value)
+            self.context.push_scope()
+            self.context.assign_symbol(node.variable_name, value)
             try:
                 for statement in node.body:
                     self.execute(statement)
@@ -113,9 +119,7 @@ class Interpreter:
             except BreakSignal:
                 break
             finally:
-                # This is not correct to clear the context, this resets symbols modified
-                # in the inner scope. Better would be to use a stack-based context.
-                self.context.recover_checkpoint(checkpoint_context)
+                self.context.pop_scope()
         return NULL
 
     def execute_continue_statement(self, node: ContinueStatement) -> RuntimeValue:
@@ -140,7 +144,7 @@ class Interpreter:
                 function.declaration.name, expected_count, actual_count
             )
 
-        checkpoint_context = self.context.copy()
+        self.context.push_scope()
         for parameter, argument in zip(function.declaration.parameters, arguments):
             assert_type_annotation(parameter.type_annotation, argument)
             self.context.register_symbol(parameter.name, argument)
@@ -151,7 +155,7 @@ class Interpreter:
         except ReturnSignal as signal:
             return signal.value
         finally:
-            self.context.recover_checkpoint(checkpoint_context)
+            self.context.pop_scope()
 
         return NULL
 
@@ -163,6 +167,8 @@ class Interpreter:
                 return NumberValue(node.value)
             case Variable():
                 return self.evaluate_variable(node)
+            case Null():
+                return NULL
             case AccessMember():
                 return self.evaluate_access_member(node)
             case FunctionCall():
@@ -195,11 +201,15 @@ class Interpreter:
 
     def evaluate_binary_expression(self, node: BinaryExpression) -> RuntimeValue:
         left = self.evaluate(node.left)
-        right = self.evaluate(node.right)
         method_name = BINARY_OPERATOR_METHODS.get(node.operator)
         if method_name is None:
             raise SeashellRuntimeError(f"unknown binary operator '{node.operator}'")
+        if not hasattr(left, method_name):
+            raise SeashellRuntimeError(
+                f"type '{left.type_name()}' does not support '{node.operator}'"
+            )
         method = getattr(left, method_name)
+        right = self.evaluate(node.right)
         return method(right)
 
     def evaluate_unary_expression(self, node: UnaryExpression) -> RuntimeValue:
@@ -207,6 +217,10 @@ class Interpreter:
         method_name = UNARY_OPERATOR_METHODS.get(node.operator)
         if method_name is None:
             raise SeashellRuntimeError(f"unknown unary operator '{node.operator}'")
+        if not hasattr(expr, method_name):
+            raise SeashellRuntimeError(
+                f"type '{expr.type_name()}' does not support '{node.operator}'"
+            )
         method = getattr(expr, method_name)
         return method()
 
@@ -217,5 +231,3 @@ class Interpreter:
         register_module(IOModule())
         register_module(FSModule())
         register_module(CollectionsModule())
-
-        self.context.register_symbol("null", NULL)

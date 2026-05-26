@@ -1,6 +1,4 @@
 * Add function return type annotation.
-* Push and pop context.
-    * Variables defined in inner scope should not leak to outer scope.
 * Import and dispatch other files.
 * Better diagnostics:
     * Beautify errors when encountered syntax error.

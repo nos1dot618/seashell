@@ -25,4 +25,4 @@ for i in collections.range(1, 10) {
     sum = sum + greet("world", i)
 }
 
-io.writeln("Sum of numbers 1..9 =", sum)
+io.writeln("\nSum of numbers 1..9 =", sum)

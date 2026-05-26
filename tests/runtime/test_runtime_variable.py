@@ -13,4 +13,4 @@ def test_assignment():
     interpreter = Interpreter()
     interpreter.run(program)
 
-    assert interpreter.context.symbols["name"] == StringValue("hello")
+    assert interpreter.context.get_symbol("name") == StringValue("hello")

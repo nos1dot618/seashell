@@ -7,12 +7,14 @@ from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
     BinaryExpression,
+    Boolean,
     BreakStatement,
     ContinueStatement,
     ForStatement,
     FunctionCall,
     FunctionDeclaration,
     IfStatement,
+    Null,
     Number,
     Parameter,
     Program,
@@ -20,7 +22,6 @@ from seashell.parser.ast_nodes import (
     String,
     UnaryExpression,
     Variable,
-    Boolean,
 )
 
 
@@ -92,6 +93,9 @@ class ASTTransformer(Transformer):
         return Boolean(
             value=(token.value == "true"),
         )
+
+    def NULL(self, token: Token) -> Null:
+        return Null()
 
     def IDENTIFIER(self, token: Token) -> str:
         return str(token)
