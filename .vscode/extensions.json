@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "dynova.vscode-lark-parser",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs"
+    ]
+}

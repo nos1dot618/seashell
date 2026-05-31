@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.cshl": "typescript",
+        "*.seashell": "typescript",
+        "*.cshell": "typescript"
+    },
+    "js/ts.validate.enabled": false
+}
