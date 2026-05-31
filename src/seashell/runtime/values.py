@@ -1,8 +1,10 @@
+import copy
 from collections.abc import Callable, Iterator
 from collections.abc import Iterable as PyIterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from seashell.diagnostics import SourceLocation
 from seashell.diagnostics.errors import (
     DivisionByZeroError,
     IncompatibleTypeError,
@@ -12,7 +14,10 @@ from seashell.diagnostics.errors import (
 from seashell.parser.ast_nodes import FunctionDeclaration
 
 
+@dataclass(kw_only=True)
 class RuntimeValue:
+    location: SourceLocation | None = None
+
     def type_name(self) -> str:
         return "value"
 
@@ -28,25 +33,31 @@ class RuntimeValue:
         return methods[name]
 
     def is_truthy(self) -> bool:
-        raise IncompatibleTypeError(cause=f"{self.type_name()} is not truthy")
+        raise IncompatibleTypeError(
+            cause=f"{self.type_name()} is not truthy",
+            location=self.location,
+        )
 
     def iterate_values(self):
-        raise IncompatibleTypeError(cause=f"{self.type_name()} is not iterable")
+        raise IncompatibleTypeError(
+            cause=f"{self.type_name()} is not iterable",
+            location=self.location,
+        )
 
     def or_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("or", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("or", other)
 
     def and_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("and", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("and", other)
 
     def eq_op(self, other: "RuntimeValue") -> "BooleanValue":
-        raise UnsupportedOperandTypesError("eq", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("eq", other)
 
     def ne_op(self, other: "RuntimeValue") -> "BooleanValue":
         return BooleanValue(self.eq_op(other).value)
 
     def gt_op(self, other: "RuntimeValue") -> "BooleanValue":
-        raise UnsupportedOperandTypesError("gt", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("gt", other)
 
     def lt_op(self, other: "RuntimeValue") -> "BooleanValue":
         return BooleanValue(other.gt_op(self).value)
@@ -58,22 +69,35 @@ class RuntimeValue:
         return BooleanValue(not self.gt_op(other).value)
 
     def add_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("+", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("+", other)
 
     def sub_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("-", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("-", other)
 
     def mul_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("*", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("*", other)
 
     def div_op(self, other: "RuntimeValue") -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("/", self.type_name(), other.type_name())
+        self._raise_unsupported_operand_types_error("/", other)
 
     def neg_op(self) -> "RuntimeValue":
-        raise UnsupportedOperandTypesError("-", self.type_name())
+        self._raise_unsupported_operand_types_error("-")
 
     def not_op(self) -> "BooleanValue":
-        raise UnsupportedOperandTypesError("not", self.type_name())
+        self._raise_unsupported_operand_types_error("not")
+
+    def copy(self, location: SourceLocation | None = None) -> "RuntimeValue":
+        other = copy.deepcopy(self)
+        other.location = location
+        return other
+
+    def _raise_unsupported_operand_types_error(self, operator, other=None) -> None:
+        raise UnsupportedOperandTypesError(
+            operator=operator,
+            left_type=self.type_name(),
+            right_type=(None if other is None else other.type_name()),
+            location=self.location,
+        )
 
     def __str__(self) -> str:
         return "<value>"
@@ -82,7 +106,7 @@ class RuntimeValue:
         return f"{self.__class__.__name__}()"
 
 
-@dataclass(frozen=True)
+@dataclass
 class StringValue(RuntimeValue):
     value: str
 
@@ -119,23 +143,18 @@ class StringValue(RuntimeValue):
 
     def gt_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, StringValue):
-            raise UnsupportedOperandTypesError(
-                "gt", self.type_name(), other.type_name()
-            )
+            self._raise_unsupported_operand_types_error("gt", other)
         return BooleanValue(self.value > other.value)
 
     def add_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, StringValue):
-            raise UnsupportedOperandTypesError("+", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("+", other)
         return StringValue(self.value + other.value)
 
     def mul_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError("*", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("*", other)
         return StringValue(self.value * other.value)
-
-    def neg_op(self) -> RuntimeValue:
-        return NumberValue(-self.value)
 
     def _format(self, *args) -> RuntimeValue:
         result = self.value
@@ -156,7 +175,7 @@ class StringValue(RuntimeValue):
         return f"StringValue({self.value!r})"
 
 
-@dataclass(frozen=True)
+@dataclass
 class NumberValue(RuntimeValue):
     value: int | float
 
@@ -173,32 +192,33 @@ class NumberValue(RuntimeValue):
 
     def gt_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError(
-                "gt", self.type_name(), other.type_name()
-            )
+            self._raise_unsupported_operand_types_error("gt", other)
         return BooleanValue(self.value > other.value)
 
     def add_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError("+", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("+", other)
         return NumberValue(self.value + other.value)
 
     def sub_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError("-", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("-", other)
         return NumberValue(self.value - other.value)
 
     def mul_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError("*", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("*", other)
         return NumberValue(self.value * other.value)
 
     def div_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, NumberValue):
-            raise UnsupportedOperandTypesError("/", self.type_name(), other.type_name())
+            self._raise_unsupported_operand_types_error("/", other)
         if other.value == 0:
             raise DivisionByZeroError()
         return NumberValue(self.value / other.value)
+
+    def neg_op(self) -> RuntimeValue:
+        return NumberValue(-self.value)
 
     def __str__(self):
         return str(self.value)
@@ -207,7 +227,7 @@ class NumberValue(RuntimeValue):
         return f"NumberValue({self.value!r})"
 
 
-@dataclass(frozen=True)
+@dataclass
 class BooleanValue(RuntimeValue):
     value: bool
 
@@ -219,16 +239,12 @@ class BooleanValue(RuntimeValue):
 
     def or_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, BooleanValue):
-            raise UnsupportedOperandTypesError(
-                "or", self.type_name(), other.type_name()
-            )
+            self._raise_unsupported_operand_types_error("or", other)
         return BooleanValue(self.value or other.value)
 
     def and_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, BooleanValue):
-            raise UnsupportedOperandTypesError(
-                "and", self.type_name(), other.type_name()
-            )
+            self._raise_unsupported_operand_types_error("and", other)
         return BooleanValue(self.value and other.value)
 
     def eq_op(self, other: RuntimeValue) -> RuntimeValue:
@@ -296,7 +312,7 @@ class FunctionValue(RuntimeValue):
         return f"{self.__class__.__name__}()"
 
 
-@dataclass(frozen=True)
+@dataclass
 class NativeFunction(FunctionValue):
     name: str
     implementation: Callable
@@ -329,7 +345,7 @@ class Iterable(RuntimeValue):
         return iter(self.source)
 
 
-@dataclass(frozen=True)
+@dataclass
 class NullValue(RuntimeValue):
     dummy: Any = None
 

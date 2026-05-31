@@ -41,7 +41,7 @@ def assert_type_annotation(
     location: SourceLocation = None,
 ) -> None:
     if type_annotation is not None and not isinstance(
-        value, get_runtime_type(type_annotation)
+        value, get_runtime_type(type_annotation, location=location)
     ):
         raise TypeMismatchError(
             expected_type=type_annotation,

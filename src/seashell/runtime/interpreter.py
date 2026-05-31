@@ -49,6 +49,7 @@ from seashell.runtime.values import (
     FunctionValue,
     Module,
     NativeFunction,
+    NullValue,
     NumberValue,
     RuntimeValue,
     StringValue,
@@ -198,13 +199,13 @@ class Interpreter:
     def evaluate(self, node: Expression) -> RuntimeValue:
         match node:
             case String():
-                return StringValue(node.value)
+                return StringValue(value=node.value, location=node.location)
             case Number():
-                return NumberValue(node.value)
+                return NumberValue(value=node.value, location=node.location)
             case Variable():
                 return self.evaluate_variable(node)
             case Null():
-                return NULL
+                return NullValue(location=node.location)
             case AccessMember():
                 return self.evaluate_access_member(node)
             case FunctionCall():
@@ -222,7 +223,7 @@ class Interpreter:
     def evaluate_variable(self, node: Variable) -> RuntimeValue:
         value = self.context.get_symbol(node.name)
         if value is not None:
-            return value
+            return value.copy(location=node.location)
         raise UndefinedVariableError(
             name=node.name,
             location=node.location,
@@ -230,7 +231,7 @@ class Interpreter:
 
     def evaluate_access_member(self, node: AccessMember) -> RuntimeValue:
         object_value = self.evaluate(node.obj)
-        return object_value.get_member(node.member)
+        return object_value.get_member(node.member).copy(location=node.location)
 
     def evaluate_function_call(self, node: FunctionCall) -> RuntimeValue:
         callee = self.evaluate(node.callee)
@@ -263,7 +264,7 @@ class Interpreter:
             if isinstance(callee, NativeFunction):
                 result = callee.implementation(*arguments)
             should_pop_frame = True
-            return result
+            return result.copy(location=node.location)
         except ReturnSignal:
             should_pop_frame = True
             raise
@@ -288,7 +289,7 @@ class Interpreter:
             )
         method = getattr(left, method_name)
         right = self.evaluate(node.right)
-        return method(right)
+        return method(right).copy(location=node.location)
 
     def evaluate_unary_expression(self, node: UnaryExpression) -> RuntimeValue:
         expr = self.evaluate(node.expr)
@@ -305,7 +306,7 @@ class Interpreter:
                 location=node.location,
             )
         method = getattr(expr, method_name)
-        return method()
+        return method().copy(location=node.location)
 
     def _register_builtins(self) -> None:
         def register_module(module: Module) -> None:

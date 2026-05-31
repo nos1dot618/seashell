@@ -6,3 +6,4 @@
 * Type-checking without executing the script.
 * REPL with prompt.
 * Editor support.
+* Generate html document for standard library reference.
