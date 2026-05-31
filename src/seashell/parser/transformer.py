@@ -2,8 +2,8 @@ import ast
 from typing import Any
 
 from lark import Token, Transformer, Tree
-from seashell.diagnostics import SourceLocation
 
+from seashell.diagnostics import SourceLocation
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
@@ -15,6 +15,8 @@ from seashell.parser.ast_nodes import (
     FunctionCall,
     FunctionDeclaration,
     IfStatement,
+    IncludeStatement,
+    Node,
     Null,
     Number,
     Parameter,
@@ -23,12 +25,14 @@ from seashell.parser.ast_nodes import (
     String,
     UnaryExpression,
     Variable,
-    Node,
 )
 
 
 # noinspection PyMethodMayBeStatic,PyPep8Naming
 class ASTTransformer(Transformer):
+    def __init__(self, filepath: str) -> None:
+        self.filepath = filepath
+
     def start(self, items: list[Any]) -> Program:
         return Program(
             statements=items,
@@ -89,6 +93,13 @@ class ASTTransformer(Transformer):
         return ReturnStatement(
             value=(items[0] if items else None),
             location=self._loc(items[0]),
+        )
+
+    def include_statement(self, items: [Node]) -> IncludeStatement:
+        string_expression: String = items[0]
+        return IncludeStatement(
+            path=str(string_expression),
+            location=string_expression.location,
         )
 
     def STRING(self, token: Token) -> String:
@@ -209,6 +220,7 @@ class ASTTransformer(Transformer):
             return SourceLocation(
                 row=value.line,
                 column=value.column,
+                filepath=self.filepath
             )
         if isinstance(value, Node):
             return value.location

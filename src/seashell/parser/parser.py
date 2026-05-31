@@ -6,13 +6,13 @@ from seashell.parser.transformer import ASTTransformer
 
 GRAMMAR = Path(__file__).parent.parent / "lexer" / "grammar.lark"
 
-parser = Lark.open(
-    str(GRAMMAR),
-    parser="lalr",
-    transformer=ASTTransformer(),
-    propagate_positions=True,
-)
 
+def parse(source: str, filepath: str | None = None):
+    parser = Lark.open(
+        str(GRAMMAR),
+        parser="lalr",
+        transformer=ASTTransformer(filepath),
+        propagate_positions=True,
+    )
 
-def parse(source: str):
     return parser.parse(source)

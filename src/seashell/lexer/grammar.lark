@@ -1,54 +1,59 @@
 start: statement*
 
 ?statement: assignment
-          | if_statement
-          | function_declaration
-          | for_statement
-          | break_statement
-          | continue_statement
-          | return_statement
-          | expression
+      | if_statement
+      | function_declaration
+      | for_statement
+      | break_statement
+      | continue_statement
+      | return_statement
+      | include_statement
+      | expression
 
 ?expression: logic_or
 
 ?logic_or: logic_and
-         | logic_or "or" logic_and -> or_op
+      | logic_or "or" logic_and -> or_op
 
 ?logic_and: equality
-          | logic_and "and" equality -> and_op
+      | logic_and "and" equality -> and_op
 
 ?equality: comparison
-         | equality "eq" comparison -> eq_op
-         | equality "ne" comparison -> ne_op
+      | equality "eq" comparison -> eq_op
+      | equality "ne" comparison -> ne_op
 
 ?comparison: addition
-           | comparison "gt" addition -> gt_op
-           | comparison "lt" addition -> lt_op
-           | comparison "ge" addition -> ge_op
-           | comparison "le" addition -> le_op
+      | comparison "gt" addition -> gt_op
+      | comparison "lt" addition -> lt_op
+      | comparison "ge" addition -> ge_op
+      | comparison "le" addition -> le_op
 
 ?addition: multiplication
-         | addition "+" multiplication -> add_op
-         | addition "-" multiplication -> sub_op
+      | addition "+" multiplication -> add_op
+      | addition "-" multiplication -> sub_op
 
 ?multiplication: unary
-               | multiplication "*" unary -> mul_op
-               | multiplication "/" unary -> div_op
+      | multiplication "*" unary -> mul_op
+      | multiplication "/" unary -> div_op
 
 ?unary: "-" unary -> neg_op
       | "not" unary -> not_op
       | postfix
 
 ?postfix: atom
-         | postfix "(" arguments? ")" -> function_call
-         | postfix "." IDENTIFIER -> access_member
+      | postfix "(" arguments? ")" -> function_call
+      | postfix "." IDENTIFIER -> access_member
 
 ?atom: NULL
-     | STRING
-     | NUMBER
-     | IDENTIFIER -> variable
-     | BOOLEAN
-     | "(" expression ")"
+      | STRING
+      | NUMBER
+      | IDENTIFIER -> variable
+      | BOOLEAN
+      | "(" expression ")"
+
+// TODO: Make path lexing rule stricter.
+
+include_statement: "include" STRING
 
 assignment: IDENTIFIER [":" IDENTIFIER] "=" expression
 
@@ -57,11 +62,13 @@ if_statement: "if" expression block
 function_declaration: "function" IDENTIFIER "(" [parameters] ")" block
 
 parameters: parameter ("," parameter)*
+
 parameter: IDENTIFIER [":" IDENTIFIER]
 
 for_statement: "for" IDENTIFIER "in" expression block
 
 break_statement: "break"
+
 continue_statement: "continue"
 
 return_statement: "return" expression?
@@ -73,20 +80,26 @@ block: "{" statement* "}"
 NULL: "null"
 
 BOOLEAN: "true"
-       | "false"
+      | "false"
 
 IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
 
 %import common.ESCAPED_STRING
+
 STRING: ESCAPED_STRING
+
+// TODO: Add support for floats/doubles.
 
 NUMBER: /\d+/
 
 %import common.CPP_COMMENT
+
 %import common.C_COMMENT
 
 %ignore CPP_COMMENT
+
 %ignore C_COMMENT
 
 %import common.WS
+
 %ignore WS

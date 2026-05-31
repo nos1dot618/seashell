@@ -6,10 +6,10 @@ from dataclasses import dataclass
 class SourceLocation:
     row: int
     column: int
-    file: str = "<stdin>"
+    filepath: str = "<stdin>"
 
     def __str__(self) -> str:
-        return f"{self.file}:{self.row}:{self.column}"
+        return f"{self.filepath}:{self.row}:{self.column}"
 
 
 @dataclass(slots=True)

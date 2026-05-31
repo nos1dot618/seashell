@@ -1,8 +1,9 @@
-import sys
+from pathlib import Path
 
 from seashell.diagnostics import SourceLocation, StackFrame
 from seashell.diagnostics.errors import (
     ArgumentCountError,
+    FileNotFoundError,
     InvalidFunctionCallError,
     SeashellRuntimeError,
     UndefinedVariableError,
@@ -11,6 +12,8 @@ from seashell.diagnostics.errors import (
     UnknownTypeError,
     UnsupportedOperandTypesError,
 )
+from seashell import utils
+from seashell.parser import parser
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
@@ -22,6 +25,7 @@ from seashell.parser.ast_nodes import (
     FunctionCall,
     FunctionDeclaration,
     IfStatement,
+    IncludeStatement,
     Node,
     Null,
     Number,
@@ -82,6 +86,8 @@ class Interpreter:
                 return self.execute_break_statement(node)
             case ReturnStatement():
                 return self.execute_return_statement(node)
+            case IncludeStatement():
+                return self.execute_include_statement(node)
             case _:
                 raise UnknownStatementError(
                     node=node,
@@ -168,6 +174,10 @@ class Interpreter:
             return signal.value
 
         return NULL
+
+    def execute_include_statement(self, node: IncludeStatement) -> RuntimeValue:
+        sub_context = Interpreter.drive(node.path, self.context.cwd)
+        self.context.include(sub_context)
 
     def evaluate(self, node: Expression) -> RuntimeValue:
         match node:
@@ -288,3 +298,17 @@ class Interpreter:
         register_module(IOModule())
         register_module(FSModule())
         register_module(CollectionsModule())
+
+    @classmethod
+    def drive(cls, filepath: str, cwd: str) -> RuntimeContext:
+        filepath = utils.get_resolved_path(filepath, cwd)
+        if filepath is None:
+            raise FileNotFoundError(filepath=filepath)
+        with open(filepath) as file:
+            source = file.read()
+
+        program = parser.parse(source, filepath)
+        interpreter = Interpreter()
+        interpreter.context.cwd = utils.get_file_directory(filepath)
+        interpreter.run(program)
+        return interpreter.context

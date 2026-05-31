@@ -147,3 +147,11 @@ class IncompatibleTypeError(SeashellRuntimeError):
 
     def format_message(self) -> str:
         return self.cause
+
+
+@dataclass
+class FileNotFoundError(SeashellRuntimeError):
+    filepath: str
+
+    def format_message(self) -> str:
+        return f"file '{self.filepath}' not found"

@@ -7,10 +7,15 @@ class RuntimeContext:
     def __init__(self) -> None:
         self.scopes: list[dict[str, RuntimeValue]] = [{}]
         self.stack_trace: list[StackFrame] = []
+        self.cwd = None
 
     @property
     def current_scope(self) -> dict[str, RuntimeValue]:
         return self.scopes[-1]
+
+    @property
+    def global_scope(self) -> dict[str, RuntimeValue]:
+        return self.scopes[0]
 
     def push_scope(self) -> None:
         return self.scopes.append({})
@@ -44,10 +49,6 @@ class RuntimeContext:
                 return scope[name]
         return None
 
-    def copy(self) -> RuntimeContext:
-        context = RuntimeContext()
-        context.scopes = [scope.copy() for scope in self.scopes]
-        return context
-
-    def recover_checkpoint(self, context: "RuntimeContext") -> None:
-        self.scopes = [scope.copy() for scope in context.scopes]
+    def include(self, context: "RuntimeContext") -> None:
+        # Just includes the global symbols.
+        self.scopes[-1].update(context.global_scope)

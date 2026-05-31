@@ -86,6 +86,10 @@ class ReturnStatement(Node):
 
 
 @dataclass
+class IncludeStatement(Node):
+    path: str
+
+@dataclass
 class String(Expression):
     value: str
 
