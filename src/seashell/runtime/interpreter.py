@@ -56,6 +56,7 @@ from seashell.runtime.values import (
     UserFunction,
 )
 from seashell.stdlib.collections import CollectionsModule
+from seashell.stdlib.data import DataModule
 from seashell.stdlib.fs import FSModule
 from seashell.stdlib.io import IOModule
 from seashell.stdlib.os import OSModule
@@ -316,6 +317,7 @@ class Interpreter:
         register_module(FSModule())
         register_module(CollectionsModule())
         register_module(OSModule())
+        register_module(DataModule())
 
     @classmethod
     def drive(cls, filepath: str, cwd: str) -> RuntimeContext | None:

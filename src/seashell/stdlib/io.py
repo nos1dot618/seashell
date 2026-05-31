@@ -1,4 +1,4 @@
-from seashell.runtime.values import Module, StringValue
+from seashell.runtime.values import Module, StringValue, NullValue
 
 
 class IOModule(Module):
@@ -7,8 +7,8 @@ class IOModule(Module):
 
         self.register_native_function_implementations(
             [
-                ("write", lambda *value: print(*value, end="")),
-                ("writeln", lambda *value: print(*value)),
+                ("write", lambda *value: NullValue(dummy=print(*value, end=""))),
+                ("writeln", lambda *value: NullValue(dummy=print(*value))),
                 (
                     "input",
                     lambda prompt=StringValue(value="> "): StringValue(

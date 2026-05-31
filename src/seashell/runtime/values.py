@@ -29,7 +29,11 @@ class RuntimeValue:
     def get_member(self, name: str) -> RuntimeValue:
         methods = self.get_members()
         if name not in methods:
-            raise UnknownMemberError(self, name)
+            raise UnknownMemberError(
+                obj=self,
+                member=name,
+                location=self.location,
+            )
         return methods[name]
 
     def is_truthy(self) -> bool:
@@ -137,9 +141,7 @@ class StringValue(RuntimeValue):
         return len(self.value) > 0
 
     def eq_op(self, other: RuntimeValue) -> RuntimeValue:
-        if not isinstance(other, StringValue):
-            return BooleanValue(False)
-        return BooleanValue(self.value == other.value)
+        return BooleanValue(value=(self == other))
 
     def gt_op(self, other: RuntimeValue) -> RuntimeValue:
         if not isinstance(other, StringValue):
@@ -167,6 +169,11 @@ class StringValue(RuntimeValue):
         result = result.replace("\0OPEN\0", "{")
         result = result.replace("\0CLOSE\0", "}")
         return StringValue(result)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, StringValue):
+            return False
+        return self.value == other.value
 
     def __str__(self):
         return self.value
@@ -343,6 +350,27 @@ class Iterable(RuntimeValue):
         if callable(self.source):
             return self.source()
         return iter(self.source)
+
+    def __str__(self) -> str:
+        return "<iterable>"
+
+    def __repr__(self) -> str:
+        return "Iterable()"
+
+
+@dataclass
+class ObjectValue(RuntimeValue):
+    values: dict[str, RuntimeValue]
+
+    def iterate_values(self) -> Iterator[RuntimeValue]:
+        for key, value in self.values.items():
+            yield ObjectValue(values={"key": StringValue(key), "value": value})
+
+    def __str__(self) -> str:
+        return str(self.values)
+
+    def __repr__(self) -> str:
+        return f"ObjectValue(values={self.values!r})"
 
 
 @dataclass

@@ -1,0 +1,39 @@
+root = "test_dummy"
+
+if not fs.exists(root) {
+    fs.create_dir(root)
+}
+
+file = root + "/data.json"
+
+json_object = data.json.parse(`
+{
+    "name": "Alice",
+    "age": 30,
+    "active": true,
+    "skills": ["Python", "Rust", "Seashell"]
+}
+`)
+
+io.writeln("Parsed JSON:", json_object)
+
+text = data.json.stringify(json_object)
+
+io.writeln("")
+io.writeln("Stringified JSON:", text)
+
+fs.write_text(file, data.json.stringify(json_object))
+
+io.writeln("")
+io.writeln("File written:", file)
+
+contents = fs.read_text(file)
+
+io.writeln("")
+io.writeln("File contents:", contents)
+
+fs.remove(file)
+fs.remove_dir(root)
+
+io.writeln("")
+io.writeln("JSON test completed successfully")

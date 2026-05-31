@@ -108,6 +108,13 @@ class ASTTransformer(Transformer):
             location=self._loc(token),
         )
 
+    def MULTILINE_STRING(self, token: Token) -> String:
+        raw_value = str(token.value)[1:-1]  # Remove the backticks.
+        return String(
+            value=raw_value,
+            location=self._loc(token),
+        )
+
     def NUMBER(self, token: Token) -> Number:
         return Number(
             value=int(token.value),
@@ -218,9 +225,7 @@ class ASTTransformer(Transformer):
     def _loc(self, value):
         if isinstance(value, Token) or isinstance(value, Tree):
             return SourceLocation(
-                row=value.line,
-                column=value.column,
-                filepath=self.filepath
+                row=value.line, column=value.column, filepath=self.filepath
             )
         if isinstance(value, Node):
             return value.location

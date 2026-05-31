@@ -69,7 +69,7 @@ class UnknownMemberError(SeashellRuntimeError):
     member: str
 
     def format_message(self) -> str:
-        return f"unknown member '{self.member}' of value '{type(self.obj).__name__}'"
+        return f"unknown member '{self.member}' of value '{self.obj}'"
 
 
 @dataclass(slots=True)
