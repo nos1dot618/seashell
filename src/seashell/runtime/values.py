@@ -1,7 +1,7 @@
+from collections.abc import Callable, Iterator
+from collections.abc import Iterable as PyIterable
 from dataclasses import dataclass, field
-from typing import Iterator
-
-from mypy.nodes import Callable
+from typing import Any
 
 from seashell.diagnostics.errors import (
     DivisionByZeroError,
@@ -257,6 +257,21 @@ class Module(RuntimeValue):
     def register(self, name: str, value: RuntimeValue) -> None:
         self.exports[name] = value
 
+    def register_symbols(self, symbols: list[(str, RuntimeValue)]) -> None:
+        for symbol in symbols:
+            self.register(*symbol)
+
+    def register_native_function_implementations(
+        self, impls: list(str, Callable)
+    ) -> None:
+        for function_name, implementation in impls:
+            self.register(
+                function_name,
+                NativeFunction(
+                    name=f"{self.name}.{function_name}", implementation=implementation
+                ),
+            )
+
     def get_members(self) -> dict[str, RuntimeValue]:
         members = super().get_members()
         members.update(self.exports)
@@ -306,14 +321,18 @@ class UserFunction(FunctionValue):
 
 @dataclass
 class Iterable(RuntimeValue):
-    iterator_factory: Callable[[], Iterator[RuntimeValue]]
+    source: Callable[[], Iterator[RuntimeValue]] | PyIterable[RuntimeValue]
 
-    def iterate_values(self):
-        return self.iterator_factory()
+    def iterate_values(self) -> Iterator[RuntimeValue]:
+        if callable(self.source):
+            return self.source()
+        return iter(self.source)
 
 
 @dataclass(frozen=True)
 class NullValue(RuntimeValue):
+    dummy: Any = None
+
     def type_name(self) -> str:
         return "null"
 

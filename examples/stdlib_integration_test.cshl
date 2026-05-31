@@ -1,0 +1,154 @@
+root = "test_dummy"
+
+io.writeln("=== OS INFORMATION ===")
+io.writeln("Platform:", os.name)
+io.writeln("Architecture:", os.architecture)
+io.writeln("Current Directory:", os.cwd())
+io.writeln("PID:", os.pid())
+io.writeln()
+
+io.writeln("=== CREATE TEST DIRECTORY ===")
+
+if fs.exists(root) {
+    fs.remove_dir(root)
+}
+
+fs.create_dir(root)
+
+io.writeln("Created:", root)
+io.writeln()
+
+io.writeln("=== PATH OPERATIONS ===")
+
+notes = fs.join(root, "notes.txt")
+users = fs.join(root, "users.txt")
+backup = fs.join(root, "backup")
+
+io.writeln("notes path:", notes)
+io.writeln("users path:", users)
+io.writeln("backup path:", backup)
+
+fs.create_dir(backup)
+
+io.writeln()
+
+io.writeln("=== FILE WRITING ===")
+
+fs.write_text(
+    notes,
+    "Hello from Seashell!\n"
+)
+
+fs.append_text(
+    notes,
+    "This line was appended.\n"
+)
+
+fs.write_text(
+    users,
+    "Alice\nBob\nCharlie\n"
+)
+
+io.writeln("Files written.")
+io.writeln()
+
+io.writeln("=== FILE READING ===")
+
+io.writeln("--- notes.txt ---")
+io.writeln(fs.read_text(notes))
+
+io.writeln("--- users.txt ---")
+io.writeln(fs.read_text(users))
+
+io.writeln()
+
+io.writeln("=== FILE INFORMATION ===")
+
+io.writeln("notes exists:", fs.exists(notes))
+io.writeln("notes is file:", fs.is_file(notes))
+io.writeln("root is dir:", fs.is_dir(root))
+
+io.writeln("basename:", fs.basename(notes))
+io.writeln("dirname:", fs.dirname(notes))
+io.writeln("absolute:", fs.absolute(notes))
+
+io.writeln()
+
+io.writeln("=== DIRECTORY LISTING ===")
+
+for file in fs.list(root) {
+    io.writeln(file)
+}
+
+io.writeln()
+
+io.writeln("=== COPY FILE ===")
+
+notes_copy = fs.join(backup, "notes_copy.txt")
+
+fs.copy(
+    notes,
+    notes_copy
+)
+
+io.writeln("Copied file.")
+io.writeln(fs.read_text(notes_copy))
+
+io.writeln()
+
+io.writeln("=== MOVE FILE ===")
+
+moved = fs.join(root, "moved_notes.txt")
+
+fs.move(
+    notes_copy,
+    moved
+)
+
+io.writeln("Moved file exists:", fs.exists(moved))
+io.writeln()
+
+io.writeln("=== ENVIRONMENT ===")
+
+old = os.getenv("SEASHELL_TEST")
+
+io.writeln("Before:", old)
+
+os.setenv(
+    "SEASHELL_TEST",
+    "working"
+)
+
+io.writeln(
+    "After:",
+    os.getenv("SEASHELL_TEST")
+)
+
+os.unsetenv("SEASHELL_TEST")
+
+io.writeln(
+    "Unset:",
+    os.getenv("SEASHELL_TEST")
+)
+
+io.writeln()
+
+io.writeln("=== FINAL DIRECTORY TREE ===")
+
+for file in fs.list(root) {
+    io.writeln(file)
+}
+
+io.writeln()
+
+io.writeln("=== CLEANUP ===")
+
+fs.remove_dir(root)
+
+io.writeln(
+    "Directory removed:",
+    not fs.exists(root)
+)
+
+io.writeln()
+io.writeln("All tests completed successfully.")

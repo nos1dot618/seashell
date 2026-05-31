@@ -1,1 +1,1 @@
-name: int = "world"
+name: string = "world"

@@ -193,10 +193,10 @@ class ASTTransformer(Transformer):
         return self._construct_binary_expression(items, "/")
 
     def neg_op(self, items: Any) -> BinaryExpression:
-        return self._construct_binary_expression(items, "-")
+        return self._construct_unary_expression(items, "-")
 
     def not_op(self, items: Any) -> BinaryExpression:
-        return self._construct_binary_expression(items, "not")
+        return self._construct_unary_expression(items, "not")
 
     def _construct_binary_expression(
         self, items: Any, operator: str

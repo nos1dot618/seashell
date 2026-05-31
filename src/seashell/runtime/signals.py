@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from seashell.runtime.constants import ExitCode
 from seashell.runtime.values import RuntimeValue
 
 
@@ -23,4 +24,4 @@ class ReturnSignal(ControlSignal):
 # Used internally to force stop execution.
 @dataclass(slots=True)
 class HaltSignal(ControlSignal):
-    graceful_exit: bool
+    exitcode: ExitCode

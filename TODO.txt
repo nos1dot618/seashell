@@ -1,9 +1,7 @@
 * Add function return type annotation.
-* Import and dispatch other files.
 * Math:
     * Add support for floats.
 * Better stdlib.
-    * Module for OS and platform details.
     * String module, which can be leveraged for parsing config files.
 * Type-checking without executing the script.
 * REPL with prompt.

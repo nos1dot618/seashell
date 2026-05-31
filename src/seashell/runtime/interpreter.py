@@ -1,3 +1,4 @@
+from seashell import utils
 from seashell.diagnostics import SourceLocation, StackFrame
 from seashell.diagnostics.errors import (
     ArgumentCountError,
@@ -10,7 +11,6 @@ from seashell.diagnostics.errors import (
     UnknownTypeError,
     UnsupportedOperandTypesError,
 )
-from seashell import utils
 from seashell.parser import parser
 from seashell.parser.ast_nodes import (
     AccessMember,
@@ -33,12 +33,13 @@ from seashell.parser.ast_nodes import (
     UnaryExpression,
     Variable,
 )
+from seashell.runtime.constants import ExitCode
 from seashell.runtime.context import RuntimeContext
 from seashell.runtime.signals import (
     BreakSignal,
     ContinueSignal,
-    ReturnSignal,
     HaltSignal,
+    ReturnSignal,
 )
 from seashell.runtime.types import assert_type_annotation
 from seashell.runtime.values import (
@@ -56,23 +57,30 @@ from seashell.runtime.values import (
 from seashell.stdlib.collections import CollectionsModule
 from seashell.stdlib.fs import FSModule
 from seashell.stdlib.io import IOModule
+from seashell.stdlib.os import OSModule
 
 
 class Interpreter:
     def __init__(self) -> None:
-        self.context = RuntimeContext()
+        self.context: RuntimeContext = RuntimeContext()
+        self.exitcode: ExitCode = ExitCode.SUCCESS
         self._register_builtins()
 
-    def run(self, program: Program) -> bool:
+    @property
+    def is_failure(self) -> bool:
+        return self.exitcode == ExitCode.FAILURE
+
+    def run(self, program: Program):
         for statement in program.statements:
             try:
                 self.execute(statement)
-            except HaltSignal as halt:
-                return halt.graceful_exit
+            except HaltSignal as halt_signal:
+                self.exitcode = halt_signal.exitcode
+                return
             except SeashellRuntimeError as error:
                 error.print_diagnostic(self.context.stack_trace)
-                return False
-        return True
+                self.exitcode = ExitCode.FAILURE
+                return
 
     def execute(self, node: Node) -> RuntimeValue:
         match node:
@@ -182,10 +190,10 @@ class Interpreter:
         return NULL
 
     def execute_include_statement(self, node: IncludeStatement) -> RuntimeValue:
-        sub_context = Interpreter.drive(node.path, self.context.cwd)
-        if sub_context is None:
-            raise HaltSignal(graceful_exit=False)
-        self.context.include(sub_context)
+        sub_interpreter = Interpreter.drive(node.path, self.context.cwd)
+        if sub_interpreter.is_failure:
+            raise HaltSignal(sub_interpreter.exitcode)
+        self.context.include(sub_interpreter.context)
 
     def evaluate(self, node: Expression) -> RuntimeValue:
         match node:
@@ -283,7 +291,7 @@ class Interpreter:
         return method(right)
 
     def evaluate_unary_expression(self, node: UnaryExpression) -> RuntimeValue:
-        expr = self.evaluate(node.left)
+        expr = self.evaluate(node.expr)
         method_name = UNARY_OPERATOR_METHODS.get(node.operator)
         if method_name is None:
             raise UnknownOperatorError(
@@ -306,6 +314,7 @@ class Interpreter:
         register_module(IOModule())
         register_module(FSModule())
         register_module(CollectionsModule())
+        register_module(OSModule())
 
     @classmethod
     def drive(cls, filepath: str, cwd: str) -> RuntimeContext | None:
@@ -318,6 +327,5 @@ class Interpreter:
         program = parser.parse(source, filepath)
         interpreter = Interpreter()
         interpreter.context.cwd = utils.get_file_directory(filepath)
-        if not interpreter.run(program):
-            return None
-        return interpreter.context
+        interpreter.run(program)
+        return interpreter
