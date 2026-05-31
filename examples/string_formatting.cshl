@@ -1,0 +1,4 @@
+io.writeln("{0} {1}!".format("Hello", "World"))
+
+// Double braces are ignored by format method.
+io.writeln("{0} {1}! ignored: {{0}}".format("Hello", "World"))

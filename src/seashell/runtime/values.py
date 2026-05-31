@@ -102,6 +102,9 @@ class StringValue(RuntimeValue):
                 "length": NativeFunction(
                     "string.length", lambda: NumberValue(len(self.value))
                 ),
+                "format": NativeFunction(
+                    "string.format", lambda *args: self._format(*args)
+                ),
             }
         )
         return members
@@ -133,6 +136,18 @@ class StringValue(RuntimeValue):
 
     def neg_op(self) -> RuntimeValue:
         return NumberValue(-self.value)
+
+    def _format(self, *args) -> RuntimeValue:
+        result = self.value
+        # Protect escaped braces.
+        result = result.replace("{{", "\0OPEN\0")
+        result = result.replace("}}", "\0CLOSE\0")
+        for i, arg in enumerate(args):
+            result = result.replace(f"{{{i}}}", str(arg))
+        # Restore escaped braces.
+        result = result.replace("\0OPEN\0", "{")
+        result = result.replace("\0CLOSE\0", "}")
+        return StringValue(result)
 
     def __str__(self):
         return self.value

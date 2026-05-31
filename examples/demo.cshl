@@ -7,8 +7,7 @@ function greet(name: string, i) {
      */
     greeting = "hello"
 
-    // TODO: Add support for format strings.
-    io.writeln(i, ":", greeting, name, "!")
+    io.writeln("{0}: {1} \"{2}\"!".format(i, greeting, name))
 
     return i
 }
