@@ -27,7 +27,7 @@ def test_function_declaration():
     assert function_declaration_statement.body == [
         FunctionCall(
             AccessMember(
-                object=Variable(name="io"),
+                obj=Variable(name="io"),
                 member="writeln",
             ),
             arguments=[Variable(name="name")],

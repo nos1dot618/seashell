@@ -1,3 +1,16 @@
+import sys
+
+from seashell.diagnostics import SourceLocation, StackFrame
+from seashell.diagnostics.errors import (
+    ArgumentCountError,
+    InvalidFunctionCallError,
+    SeashellRuntimeError,
+    UndefinedVariableError,
+    UnknownOperatorError,
+    UnknownStatementError,
+    UnknownTypeError,
+    UnsupportedOperandTypesError,
+)
 from seashell.parser.ast_nodes import (
     AccessMember,
     Assignment,
@@ -10,29 +23,22 @@ from seashell.parser.ast_nodes import (
     FunctionDeclaration,
     IfStatement,
     Node,
+    Null,
     Number,
     Program,
     ReturnStatement,
     String,
     UnaryExpression,
     Variable,
-    Null,
 )
 from seashell.runtime.context import RuntimeContext
-from seashell.runtime.errors import (
-    ArgumentCountError,
-    InvalidFunctionCallError,
-    SeashellRuntimeError,
-    UndefinedVariableError,
-    UnknownStatementError,
-    UnknownTypeError,
-)
 from seashell.runtime.signals import BreakSignal, ContinueSignal, ReturnSignal
 from seashell.runtime.types import assert_type_annotation
 from seashell.runtime.values import (
     BINARY_OPERATOR_METHODS,
     NULL,
     UNARY_OPERATOR_METHODS,
+    FunctionValue,
     Module,
     NativeFunction,
     NumberValue,
@@ -55,8 +61,7 @@ class Interpreter:
             try:
                 self.execute(statement)
             except SeashellRuntimeError as error:
-                # TODO: Better diagnostics.
-                print(f"error: {error}")
+                error.print_diagnostic(self.context.stack_trace)
                 break
 
     def execute(self, node: Node) -> RuntimeValue:
@@ -78,11 +83,18 @@ class Interpreter:
             case ReturnStatement():
                 return self.execute_return_statement(node)
             case _:
-                raise UnknownStatementError(f"unknown statement: {node}")
+                raise UnknownStatementError(
+                    node=node,
+                    location=node.location,
+                )
 
     def execute_assignment(self, node: Assignment) -> RuntimeValue:
         value = self.evaluate(node.value)
-        assert_type_annotation(node.type_annotation, value)
+        assert_type_annotation(
+            type_annotation=node.type_annotation,
+            value=value,
+            location=node.location,
+        )
         self.context.assign_symbol(node.name, value)
         return NULL
 
@@ -92,12 +104,8 @@ class Interpreter:
     def execute_if_statement(self, node: IfStatement) -> RuntimeValue:
         condition = self.evaluate(node.condition)
         if condition.is_truthy():
-            self.context.push_scope()
-            try:
-                for statement in node.body:
-                    self.execute(statement)
-            finally:
-                self.context.pop_scope()
+            for statement in node.body:
+                self.execute(statement)
         return NULL
 
     def execute_function_declaration(self, node: FunctionDeclaration) -> RuntimeValue:
@@ -107,10 +115,8 @@ class Interpreter:
 
     def execute_for_statement(self, node: ForStatement) -> RuntimeValue:
         iterable = self.evaluate(node.iterable)
-        self.context.register_symbol(node.variable_name, NULL)
         for value in iterable.iterate_values():
-            self.context.push_scope()
-            self.context.assign_symbol(node.variable_name, value)
+            self.context.register_symbol(node.variable_name, value)
             try:
                 for statement in node.body:
                     self.execute(statement)
@@ -118,8 +124,6 @@ class Interpreter:
                 continue
             except BreakSignal:
                 break
-            finally:
-                self.context.pop_scope()
         return NULL
 
     def execute_continue_statement(self, node: ContinueStatement) -> RuntimeValue:
@@ -133,7 +137,10 @@ class Interpreter:
         raise ReturnSignal(value)
 
     def execute_user_function(
-        self, function: UserFunction, arguments: list[RuntimeValue]
+        self,
+        function: UserFunction,
+        arguments: list[RuntimeValue],
+        caller_location: SourceLocation,
     ) -> RuntimeValue:
         expected_count, actual_count = (
             len(function.declaration.parameters),
@@ -141,21 +148,24 @@ class Interpreter:
         )
         if expected_count != actual_count:
             raise ArgumentCountError(
-                function.declaration.name, expected_count, actual_count
+                function_name=function.declaration.name,
+                expected_count=expected_count,
+                actual_count=actual_count,
+                location=caller_location,
             )
 
-        self.context.push_scope()
         for parameter, argument in zip(function.declaration.parameters, arguments):
-            assert_type_annotation(parameter.type_annotation, argument)
+            assert_type_annotation(
+                type_annotation=parameter.type_annotation,
+                value=argument,
+                location=parameter.location,
+            )
             self.context.register_symbol(parameter.name, argument)
-
         try:
             for statement in function.declaration.body:
                 self.execute(statement)
         except ReturnSignal as signal:
             return signal.value
-        finally:
-            self.context.pop_scope()
 
         return NULL
 
@@ -178,35 +188,77 @@ class Interpreter:
             case UnaryExpression():
                 return self.evaluate_unary_expression(node)
             case _:
-                raise UnknownTypeError(node)
+                raise UnknownTypeError(
+                    value=node,
+                    location=node.location,
+                )
 
     def evaluate_variable(self, node: Variable) -> RuntimeValue:
         value = self.context.get_symbol(node.name)
         if value is not None:
             return value
-        raise UndefinedVariableError(node.name)
+        raise UndefinedVariableError(
+            name=node.name,
+            location=node.location,
+        )
 
     def evaluate_access_member(self, node: AccessMember) -> RuntimeValue:
-        object_value = self.evaluate(node.object)
+        object_value = self.evaluate(node.obj)
         return object_value.get_member(node.member)
 
     def evaluate_function_call(self, node: FunctionCall) -> RuntimeValue:
         callee = self.evaluate(node.callee)
         arguments = [self.evaluate(argument) for argument in node.arguments]
-        if isinstance(callee, UserFunction):
-            return self.execute_user_function(callee, arguments)
-        if isinstance(callee, NativeFunction):
-            return callee.implementation(*arguments)
-        raise InvalidFunctionCallError(callee)
+
+        if not isinstance(callee, FunctionValue):
+            raise InvalidFunctionCallError(
+                value=callee,
+                location=node.location,
+            )
+
+        self.context.push_scope()
+        self.context.push_stack_frame(
+            StackFrame(
+                callee=str(node.callee),
+                arguments=arguments,
+                location=node.location,
+            )
+        )
+
+        should_pop_frame = False
+
+        try:
+            if isinstance(callee, UserFunction):
+                result = self.execute_user_function(
+                    function=callee,
+                    arguments=arguments,
+                    caller_location=node.location,
+                )
+            if isinstance(callee, NativeFunction):
+                result = callee.implementation(*arguments)
+            should_pop_frame = True
+            return result
+        except ReturnSignal:
+            should_pop_frame = True
+            raise
+        finally:
+            if should_pop_frame:
+                self.context.pop_stack_frame()
+            self.context.pop_scope()
 
     def evaluate_binary_expression(self, node: BinaryExpression) -> RuntimeValue:
         left = self.evaluate(node.left)
         method_name = BINARY_OPERATOR_METHODS.get(node.operator)
         if method_name is None:
-            raise SeashellRuntimeError(f"unknown binary operator '{node.operator}'")
+            raise UnknownOperatorError(
+                operator=node.operator,
+                location=node.location,
+            )
         if not hasattr(left, method_name):
-            raise SeashellRuntimeError(
-                f"type '{left.type_name()}' does not support '{node.operator}'"
+            raise UnsupportedOperandTypesError(
+                operator=node.operator,
+                left_type=left.type_name(),
+                location=node.location,
             )
         method = getattr(left, method_name)
         right = self.evaluate(node.right)
@@ -216,10 +268,15 @@ class Interpreter:
         expr = self.evaluate(node.left)
         method_name = UNARY_OPERATOR_METHODS.get(node.operator)
         if method_name is None:
-            raise SeashellRuntimeError(f"unknown unary operator '{node.operator}'")
+            raise UnknownOperatorError(
+                operator=node.operator,
+                location=node.location,
+            )
         if not hasattr(expr, method_name):
-            raise SeashellRuntimeError(
-                f"type '{expr.type_name()}' does not support '{node.operator}'"
+            raise UnsupportedOperandTypesError(
+                operator=node.operator,
+                left_type=expr.type_name(),
+                location=node.location,
             )
         method = getattr(expr, method_name)
         return method()

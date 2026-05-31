@@ -1,7 +1,5 @@
 * Add function return type annotation.
 * Import and dispatch other files.
-* Better diagnostics:
-    * Beautify errors when encountered syntax error.
 * Math:
     * Add support for floats.
 * Better stdlib.
@@ -10,4 +8,3 @@
 * Type-checking without executing the script.
 * REPL with prompt.
 * Editor support.
-* CI/CD pipeline for behaviour and platform testing.

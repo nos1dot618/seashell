@@ -1,4 +1,5 @@
-from seashell.runtime.errors import TypeMismatchError, UnknownTypeError
+from seashell.diagnostics import SourceLocation
+from seashell.diagnostics.errors import TypeMismatchError, UnknownTypeError
 from seashell.runtime.values import (
     BooleanValue,
     FunctionValue,
@@ -21,16 +22,29 @@ TYPE_REGISTRY: dict[str, type[RuntimeValue]] = {
 }
 
 
-def get_runtime_type(type_name: str) -> type[RuntimeValue]:
+def get_runtime_type(
+    type_name: str,
+    location: SourceLocation = None,
+) -> type[RuntimeValue]:
     try:
         return TYPE_REGISTRY[type_name]
     except KeyError:
-        raise UnknownTypeError(type_name)
+        raise UnknownTypeError(
+            value=type_name,
+            location=location,
+        )
 
 
-def assert_type_annotation(type_annotation: str | None, value: RuntimeValue) -> None:
+def assert_type_annotation(
+    type_annotation: str | None,
+    value: RuntimeValue,
+    location: SourceLocation = None,
+) -> None:
     if type_annotation is not None and not isinstance(
         value, get_runtime_type(type_annotation)
     ):
-        # TODO: Better diagnostics.
-        raise TypeMismatchError(type_annotation, value.type_name())
+        raise TypeMismatchError(
+            expected_type=type_annotation,
+            actual_type=value.type_name(),
+            location=location,
+        )

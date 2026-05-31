@@ -26,7 +26,7 @@ def test_if_statement():
     assert if_statement.body == [
         FunctionCall(
             AccessMember(
-                object=Variable(name="io"),
+                obj=Variable(name="io"),
                 member="writeln",
             ),
             arguments=[String(value="hello")],

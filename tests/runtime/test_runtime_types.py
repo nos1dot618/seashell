@@ -13,7 +13,7 @@ def test_variable_type_mismatch_error(capsys):
     interpreter.run(program)
 
     captured = capsys.readouterr()
-    assert "error: expected type 'string' but got type 'number'\n" == captured.out
+    assert "error: expected type 'string' but got 'number'\n" in captured.out
 
 
 def test_function_call_parameter_type_mismatch_error(capsys):
@@ -31,4 +31,4 @@ def test_function_call_parameter_type_mismatch_error(capsys):
     interpreter.run(program)
 
     captured = capsys.readouterr()
-    assert "error: expected type 'number' but got type 'string'\n" == captured.out
+    assert "error: expected type 'number' but got 'string'\n" in captured.out

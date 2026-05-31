@@ -10,6 +10,7 @@ parser = Lark.open(
     str(GRAMMAR),
     parser="lalr",
     transformer=ASTTransformer(),
+    propagate_positions=True,
 )
 
 

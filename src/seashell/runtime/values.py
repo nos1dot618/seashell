@@ -3,13 +3,13 @@ from typing import Iterator
 
 from mypy.nodes import Callable
 
-from seashell.parser.ast_nodes import FunctionDeclaration
-from seashell.runtime.errors import (
+from seashell.diagnostics.errors import (
     DivisionByZeroError,
-    SeashellRuntimeError,
+    IncompatibleTypeError,
     UnknownMemberError,
     UnsupportedOperandTypesError,
 )
+from seashell.parser.ast_nodes import FunctionDeclaration
 
 
 class RuntimeValue:
@@ -28,10 +28,10 @@ class RuntimeValue:
         return methods[name]
 
     def is_truthy(self) -> bool:
-        raise SeashellRuntimeError(f"{self.type_name()} is not truthy")
+        raise IncompatibleTypeError(cause=f"{self.type_name()} is not truthy")
 
     def iterate_values(self):
-        raise SeashellRuntimeError(f"{self.type_name()} is not iterable")
+        raise IncompatibleTypeError(cause=f"{self.type_name()} is not iterable")
 
     def or_op(self, other: "RuntimeValue") -> "RuntimeValue":
         raise UnsupportedOperandTypesError("or", self.type_name(), other.type_name())
@@ -94,13 +94,13 @@ class StringValue(RuntimeValue):
         members.update(
             {
                 "upper": NativeFunction(
-                    "upper", lambda: StringValue(self.value.upper())
+                    "string.upper", lambda: StringValue(self.value.upper())
                 ),
                 "lower": NativeFunction(
-                    "lower", lambda: StringValue(self.value.lower())
+                    "string.lower", lambda: StringValue(self.value.lower())
                 ),
                 "length": NativeFunction(
-                    "length", lambda: NumberValue(len(self.value))
+                    "string.length", lambda: NumberValue(len(self.value))
                 ),
             }
         )

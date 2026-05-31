@@ -1,10 +1,12 @@
+from seashell.diagnostics import StackFrame
+from seashell.diagnostics.errors import InternalError
 from seashell.runtime.values import RuntimeValue
-from seashell.runtime.errors import SeashellRuntimeError
 
 
 class RuntimeContext:
     def __init__(self) -> None:
         self.scopes: list[dict[str, RuntimeValue]] = [{}]
+        self.stack_trace: list[StackFrame] = []
 
     @property
     def current_scope(self) -> dict[str, RuntimeValue]:
@@ -15,8 +17,16 @@ class RuntimeContext:
 
     def pop_scope(self) -> None:
         if len(self.scopes) == 1:
-            raise SeashellRuntimeError("cannot pop global scope")
+            raise InternalError(message="cannot pop global scope")
         self.scopes.pop()
+
+    def push_stack_frame(self, stack_frame: StackFrame) -> None:
+        return self.stack_trace.append(stack_frame)
+
+    def pop_stack_frame(self) -> None:
+        if len(self.stack_trace) == 0:
+            raise InternalError(message="cannot pop stack trace")
+        self.stack_trace.pop()
 
     def register_symbol(self, name: str, value: RuntimeValue) -> None:
         self.current_scope[name] = value

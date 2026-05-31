@@ -6,8 +6,8 @@ class IOModule(Module):
         super().__init__(name="io")
 
         self.register(
-            "write", NativeFunction("write", lambda *value: print(*value, end=""))
+            "write", NativeFunction("io.write", lambda *value: print(*value, end=""))
         )
         self.register(
-            "writeln", NativeFunction("writeln", lambda *value: print(*value))
+            "writeln", NativeFunction("io.writeln", lambda *value: print(*value))
         )

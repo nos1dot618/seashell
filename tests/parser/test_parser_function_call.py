@@ -16,7 +16,7 @@ def test_function_call():
     assert isinstance(function_call_statement, FunctionCall)
 
     assert function_call_statement.callee == AccessMember(
-        object=Variable(name="io"),
+        obj=Variable(name="io"),
         member="writeln",
     )
     assert function_call_statement.arguments == [String(value="hello")]

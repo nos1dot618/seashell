@@ -1,7 +1,8 @@
 import ast
 from typing import Any
 
-from lark import Token, Transformer
+from lark import Token, Transformer, Tree
+from seashell.diagnostics import SourceLocation
 
 from seashell.parser.ast_nodes import (
     AccessMember,
@@ -22,6 +23,7 @@ from seashell.parser.ast_nodes import (
     String,
     UnaryExpression,
     Variable,
+    Node,
 )
 
 
@@ -36,20 +38,23 @@ class ASTTransformer(Transformer):
         return Assignment(
             name=str(items[0]),
             value=items[2],
-            type_annotation=items[1],
+            type_annotation=(None if items[1] is None else str(items[1])),
+            location=self._loc(items[0]),
         )
 
     def if_statement(self, items: list[Any]) -> IfStatement:
         return IfStatement(
             condition=items[0],
             body=items[1],
+            location=self._loc(items[0]),
         )
 
     def function_declaration(self, items) -> FunctionDeclaration:
         return FunctionDeclaration(
-            name=items[0],
-            parameters=(items[1] if len(items) == 3 else []),
+            name=str(items[0]),
+            parameters=([] if items[1] is None else items[1]),
             body=items[-1],
+            location=self._loc(items[0]),
         )
 
     def parameters(self, items: Any) -> list[Parameter]:
@@ -57,8 +62,9 @@ class ASTTransformer(Transformer):
 
     def parameter(self, items: list[Any]) -> Parameter:
         return Parameter(
-            name=items[0],
-            type_annotation=items[1],
+            name=str(items[0]),
+            type_annotation=(None if items[1] is None else str(items[1])),
+            location=self._loc(items[0]),
         )
 
     def for_statement(self, items):
@@ -66,54 +72,73 @@ class ASTTransformer(Transformer):
             variable_name=str(items[0]),
             iterable=items[1],
             body=items[2],
+            location=self._loc(items[0]),
         )
 
-    def break_statement(self, _):
-        return BreakStatement()
+    def break_statement(self, token: Token):
+        return BreakStatement(
+            location=self._loc(token[0]),
+        )
 
-    def continue_statement(self, _):
-        return ContinueStatement()
+    def continue_statement(self, token: Token):
+        return ContinueStatement(
+            location=self._loc(token[0]),
+        )
 
-    def return_statement(self, items):
+    def return_statement(self, items: list[Any]):
         return ReturnStatement(
             value=(items[0] if items else None),
+            location=self._loc(items[0]),
         )
 
     def STRING(self, token: Token) -> String:
         return String(
             value=ast.literal_eval(token.value),
+            location=self._loc(token),
         )
 
     def NUMBER(self, token: Token) -> Number:
         return Number(
             value=int(token.value),
+            location=self._loc(token),
         )
 
     def BOOLEAN(self, token: Token) -> Boolean:
         return Boolean(
             value=(token.value == "true"),
+            location=self._loc(token),
         )
 
     def NULL(self, token: Token) -> Null:
-        return Null()
+        return Null(
+            location=self._loc(token),
+        )
 
     def IDENTIFIER(self, token: Token) -> str:
-        return str(token)
+        return token
 
     def variable(self, items: list[Any]) -> Variable:
-        return Variable(name=items[0])
+        return Variable(
+            name=str(items[0]),
+            location=self._loc(items[0]),
+        )
 
     def function_call(self, items: list[Any]) -> FunctionCall:
         return FunctionCall(
             callee=items[0],
             arguments=(items[1] if len(items) > 1 else []),
+            location=self._loc(items[0]),
         )
 
     def arguments(self, items: Any) -> list[Any]:
         return list(items)
 
     def access_member(self, items: list[Any]) -> AccessMember:
-        return AccessMember(object=items[0], member=items[1])
+        return AccessMember(
+            obj=items[0],
+            member=str(items[1]),
+            location=self._loc(items[0]),
+        )
 
     def block(self, items: Any) -> list[Any]:
         return list(items)
@@ -169,10 +194,21 @@ class ASTTransformer(Transformer):
             left=items[0],
             operator=operator,
             right=items[1],
+            location=self._loc(items[0]),
         )
 
     def _construct_unary_expression(self, items: Any, operator: str) -> UnaryExpression:
         return UnaryExpression(
             expr=items[0],
             operator=operator,
+            location=self._loc(items[0]),
         )
+
+    def _loc(self, value):
+        if isinstance(value, Token) or isinstance(value, Tree):
+            return SourceLocation(
+                row=value.line,
+                column=value.column,
+            )
+        if isinstance(value, Node):
+            return value.location

@@ -1,6 +1,4 @@
-from seashell.runtime.errors import (
-    ArgumentCountError,
-)
+from seashell.diagnostics.errors import ArgumentCountError
 from seashell.runtime.values import Iterable, Module, NativeFunction, NumberValue
 
 
@@ -9,7 +7,7 @@ class CollectionsModule(Module):
     def __init__(self) -> None:
         super().__init__(name="collections")
 
-        self.register("range", NativeFunction("range", self.native_range))
+        self.register("range", NativeFunction("collections.range", self.native_range))
 
     def native_range(self, *args):
         values = [arg.value for arg in args]
@@ -23,5 +21,11 @@ class CollectionsModule(Module):
         elif len(values) == 3:
             start, stop, step = values
         else:
-            raise ArgumentCountError("range", "1-3", len(values))
+            # TODO: Add reference to current executing statment, to get the location from.
+            raise ArgumentCountError(
+                function_name="range",
+                expected_count="1-3",
+                actual_count=len(values),
+                location=None,
+            )
         return Iterable(lambda: (NumberValue(i) for i in range(start, stop, step)))
