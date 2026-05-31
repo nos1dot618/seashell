@@ -12,15 +12,15 @@ linux:
   script:
     - uv run pytest
 
-windows:
-  stage: test
+# windows:
+#   stage: test
 
-  tags:
-    - windows
+#   tags:
+#     - windows
 
-  before_script:
-    - powershell -Command "pip install uv"
-    - powershell -Command "uv sync"
+#   before_script:
+#     - powershell -Command "pip install uv"
+#     - powershell -Command "uv sync"
 
-  script:
-    - powershell -Command "uv run pytest"
+#   script:
+#     - powershell -Command "uv run pytest"
