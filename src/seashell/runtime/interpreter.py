@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from seashell.diagnostics import SourceLocation, StackFrame
 from seashell.diagnostics.errors import (
     ArgumentCountError,
@@ -36,7 +34,12 @@ from seashell.parser.ast_nodes import (
     Variable,
 )
 from seashell.runtime.context import RuntimeContext
-from seashell.runtime.signals import BreakSignal, ContinueSignal, ReturnSignal
+from seashell.runtime.signals import (
+    BreakSignal,
+    ContinueSignal,
+    ReturnSignal,
+    HaltSignal,
+)
 from seashell.runtime.types import assert_type_annotation
 from seashell.runtime.values import (
     BINARY_OPERATOR_METHODS,
@@ -60,13 +63,16 @@ class Interpreter:
         self.context = RuntimeContext()
         self._register_builtins()
 
-    def run(self, program: Program):
+    def run(self, program: Program) -> bool:
         for statement in program.statements:
             try:
                 self.execute(statement)
+            except HaltSignal as halt:
+                return halt.graceful_exit
             except SeashellRuntimeError as error:
                 error.print_diagnostic(self.context.stack_trace)
-                break
+                return False
+        return True
 
     def execute(self, node: Node) -> RuntimeValue:
         match node:
@@ -177,6 +183,8 @@ class Interpreter:
 
     def execute_include_statement(self, node: IncludeStatement) -> RuntimeValue:
         sub_context = Interpreter.drive(node.path, self.context.cwd)
+        if sub_context is None:
+            raise HaltSignal(graceful_exit=False)
         self.context.include(sub_context)
 
     def evaluate(self, node: Expression) -> RuntimeValue:
@@ -300,7 +308,7 @@ class Interpreter:
         register_module(CollectionsModule())
 
     @classmethod
-    def drive(cls, filepath: str, cwd: str) -> RuntimeContext:
+    def drive(cls, filepath: str, cwd: str) -> RuntimeContext | None:
         filepath = utils.get_resolved_path(filepath, cwd)
         if filepath is None:
             raise FileNotFoundError(filepath=filepath)
@@ -310,5 +318,6 @@ class Interpreter:
         program = parser.parse(source, filepath)
         interpreter = Interpreter()
         interpreter.context.cwd = utils.get_file_directory(filepath)
-        interpreter.run(program)
+        if not interpreter.run(program):
+            return None
         return interpreter.context

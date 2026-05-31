@@ -4,4 +4,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    Interpreter.drive(sys.argv[1], str(Path.cwd()))
+    if Interpreter.drive(sys.argv[1], str(Path.cwd())):
+        exit(0)
+    else:
+        exit(1)

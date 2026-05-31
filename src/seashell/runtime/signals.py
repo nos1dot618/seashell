@@ -18,3 +18,9 @@ class ContinueSignal(ControlSignal):
 @dataclass
 class ReturnSignal(ControlSignal):
     value: RuntimeValue
+
+
+# Used internally to force stop execution.
+@dataclass(slots=True)
+class HaltSignal(ControlSignal):
+    graceful_exit: bool
